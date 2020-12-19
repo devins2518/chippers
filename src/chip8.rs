@@ -57,4 +57,15 @@ impl Chip8 {
             SP: 0x00,
         }
     }
+
+    pub fn RET(&mut self) {
+        self.PC = self.SP as u16;
+        self.SP -= 1;
+    }
+
+    pub fn JP(&mut self, addr: u16) {
+        self.PC = addr;
+    }
+
+    pub fn CALL(&mut self, addr: u16) {}
 }

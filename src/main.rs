@@ -1,8 +1,7 @@
-mod ppu;
-use chip8::Chip8;
-
+mod bus;
 mod chip8;
+mod ppu;
 
 fn main() {
-    let chip8 = Chip8::new();
+    let bus = bus::Bus::new();
 }
