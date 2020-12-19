@@ -53,11 +53,12 @@ impl Chip8 {
             I: 0x0000,
             DT: 0x00,
             ST: 0x00,
-            PC: 0x00,
+            PC: 0x0000,
             SP: 0x00,
         }
     }
 
+    // Return from subroutine
     pub fn RET(&mut self) {
         self.PC = self.SP as u16;
         self.SP -= 1;
