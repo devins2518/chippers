@@ -1,3 +1,5 @@
+use super::bus::Bus;
+
 #[allow(non_snake_case)]
 pub struct CPU {
     // Registers
@@ -16,8 +18,10 @@ pub struct CPU {
     pub SP: u8,
     pub stack: [u16; 16],
     pub ram: [u8; 4096],
+    pub bus: Bus,
 }
 
+#[allow(non_snake_case)]
 impl CPU {
     pub fn new() -> Self {
         let mut ram = [0x00; 4096];
@@ -44,17 +48,47 @@ impl CPU {
             I: 0x0000,
             DT: 0x00,
             ST: 0x00,
-            PC: 0x0000,
+            PC: 0x200,
             // Points to topmost level of stack
             SP: 0xFF,
             stack: [0x0000; 16],
             ram,
+            bus: Bus::new(),
         }
     }
 
+    // Basically copied from
+    // https://github.com/ColinEberhardt/wasm-rust-chip8/blob/master/src/cpu.rs
     pub fn evaluate_opcode(&mut self) {
         let opcode = self.read_memory(self.PC);
-        todo!();
+
+        let nnn = opcode & 0x0FFF;
+        let x = opcode & 0x0F00;
+        let y = opcode & 0x00F0;
+        let kk = opcode & 0x00FF;
+        let n = opcode & 0x000F;
+
+        let op1 = opcode & 0xF000;
+        let op2 = opcode & 0x0F00;
+        let op3 = opcode & 0x00F0;
+        let op4 = opcode & 0x000F;
+
+        println!(
+            "nnn {} x {} y {} kk {} n {}\nop1 {} op2 {} op3 {} op4 {}",
+            nnn, x, y, kk, n, op1, op2, op3, op4
+        );
+
+        // Switching to function pointer table will be much faster
+        match (op1, op2, op3, op4) {
+            // Ignore SYS call
+            (0x0, 0x0, 0xE, 0x0) => self.bus.PPU.CLS(),
+            (0x0, 0x0, 0xE, 0xE) => self.RET(),
+            (0x1, _, _, _) => self.JP(nnn),
+
+            _ => (),
+        }
+
+        self.PC += 2;
     }
 
     // u16 because of PC size
@@ -78,7 +112,69 @@ impl CPU {
         self.PC = addr;
     }
 
-    pub fn CALL(&mut self, addr: u16) {}
+    pub fn CALL(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn SE(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn SNE(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn LD(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn ADD(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn OR(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn AND(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn XOR(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn SUB(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn SHR(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn SUBN(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn SHL(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn RND(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn DRW(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn SKP(&mut self, addr: u16) {
+        todo!();
+    }
+
+    pub fn SKNP(&mut self, addr: u16) {
+        todo!();
+    }
 }
 
 #[cfg(test)]

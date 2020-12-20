@@ -6,15 +6,20 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 
 fn main() {
-    let mut bus = bus::Bus::new();
+    let mut cpu = cpu::CPU::new();
 
     // Load ROM into memory
-    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    path.push("rom/test_opcode.ch8");
-    let mut rom = File::open(path).unwrap();
-    if let Ok(bytes_read) = rom.read(&mut bus.RAM[0x200..]) {
+    let mut rom_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    rom_path.push("rom/test_opcode.ch8");
+    let mut rom = File::open(rom_path).unwrap();
+    if let Ok(bytes_read) = rom.read(&mut cpu.ram[0x200..]) {
         bytes_read
     } else {
         0
     };
+
+    for _ in 0..=10 {
+        cpu.bus.PPU.canvas.present();
+        cpu.evaluate_opcode();
+    }
 }

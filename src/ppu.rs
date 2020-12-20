@@ -1,9 +1,10 @@
 pub struct PPU {
     context: sdl2::Sdl,
     video: sdl2::VideoSubsystem,
-    canvas: sdl2::render::Canvas<sdl2::video::Window>,
+    pub canvas: sdl2::render::Canvas<sdl2::video::Window>,
 }
 
+#[allow(non_snake_case)]
 impl PPU {
     pub fn new() -> Self {
         let context = sdl2::init().unwrap();
