@@ -1,5 +1,10 @@
 use super::bus::Bus;
 
+enum ReturnType {
+    Inc,
+    Stay,
+}
+
 #[allow(non_snake_case)]
 pub struct CPU {
     // Registers
@@ -63,18 +68,22 @@ impl CPU {
         let opcode = self.read_memory(self.PC);
 
         let nnn = opcode & 0x0FFF;
-        let x = opcode & 0x0F00;
-        let y = opcode & 0x00F0;
-        let kk = opcode & 0x00FF;
-        let n = opcode & 0x000F;
+        let x = ((opcode & 0x0F00) >> 8) as u8;
+        let y = ((opcode & 0x00F0) >> 4) as u8;
+        let kk = (opcode & 0x00FF) as u8;
+        let n = (opcode & 0x000F) as u8;
 
-        let op1 = opcode & 0xF000;
-        let op2 = opcode & 0x0F00;
-        let op3 = opcode & 0x00F0;
-        let op4 = opcode & 0x000F;
+        // Op 1 example
+        // 1111_1111_1111_1111
+        // 1111_0000_0000_0000
+        // 0000_0000_0000_1111
+        let op1 = ((opcode & 0xF000) >> 12) as u8;
+        let op2 = ((opcode & 0x0F00) >> 8) as u8;
+        let op3 = ((opcode & 0x00F0) >> 4) as u8;
+        let op4 = (opcode & 0x000F) as u8;
 
         println!(
-            "nnn {} x {} y {} kk {} n {}\nop1 {} op2 {} op3 {} op4 {}",
+            "nnn {} x {} y {} kk {} n {}\nop1 {} op2 {} op3 {} op4 {}\n",
             nnn, x, y, kk, n, op1, op2, op3, op4
         );
 
@@ -84,6 +93,18 @@ impl CPU {
             (0x0, 0x0, 0xE, 0x0) => self.bus.PPU.CLS(),
             (0x0, 0x0, 0xE, 0xE) => self.RET(),
             (0x1, _, _, _) => self.JP(nnn),
+            (0x2, _, _, _) => self.CALL(nnn),
+            (0x3, _, _, _) => self.SE(self.V[x as usize], kk),
+            (0x4, _, _, _) => self.SNE(self.V[x as usize], kk),
+            (0x5, _, _, _) => self.SE(self.V[x as usize], self.V[y as usize]),
+            (0x6, _, _, _) => self.LD(x as usize, kk),
+            (0x7, _, _, _) => self.ADD(x as usize, kk),
+            (0x8, _, _, 0) => self.LD(x as usize, self.V[y as usize]),
+            (0x8, _, _, 1) => self.OR(x as usize, self.V[y as usize]),
+            (0x8, _, _, 2) => self.AND(x as usize, self.V[y as usize]),
+            (0x8, _, _, 3) => self.XOR(x as usize, self.V[y as usize]),
+            (0x8, _, _, 4) => self.ADC(x as usize, self.V[y as usize]),
+            (0x8, _, _, 5) => self.SUB(x as usize, self.V[y as usize]),
 
             _ => (),
         }
@@ -98,7 +119,7 @@ impl CPU {
         (self.ram[addr as usize] as u16) << 8 | (self.ram[addr as usize + 1] as u16)
     }
 
-    pub fn write_memory(&mut self, addr: u8, value: u8) {
+    pub fn write_memory(&mut self, addr: u16, value: u8) {
         self.ram[addr as usize] = value;
     }
 
@@ -108,44 +129,76 @@ impl CPU {
         self.SP -= 1;
     }
 
+    // Jump to instruction at addr
     pub fn JP(&mut self, addr: u16) {
         self.PC = addr;
+        self.PC -= 2;
     }
 
+    // Put current instruction on stack, run instruction at addr
     pub fn CALL(&mut self, addr: u16) {
-        todo!();
+        self.stack[self.SP as usize] = self.PC;
+        self.SP += 1;
+        self.PC = addr;
+        self.PC -= 2;
     }
 
-    pub fn SE(&mut self, addr: u16) {
-        todo!();
+    // If value equals byte, increment program counter by 1 byte
+    pub fn SE(&mut self, value: u8, byte: u8) {
+        if value == byte {
+            self.PC += 2;
+        }
     }
 
-    pub fn SNE(&mut self, addr: u16) {
-        todo!();
+    // If value does not equal byte, increment program counter by 1 byte
+    pub fn SNE(&mut self, value: u8, byte: u8) {
+        if value != byte {
+            self.PC += 2;
+        }
     }
 
-    pub fn LD(&mut self, addr: u16) {
-        todo!();
+    // Load V[index] with byte
+    pub fn LD(&mut self, index: usize, byte: u8) {
+        self.V[index] = byte;
     }
 
-    pub fn ADD(&mut self, addr: u16) {
-        todo!();
+    pub fn ADD(&mut self, index: usize, byte: u8) {
+        self.V[index] = self.V[index].wrapping_add(byte);
     }
 
-    pub fn OR(&mut self, addr: u16) {
-        todo!();
+    // Custom add with carry
+    pub fn ADC(&mut self, index: usize, byte: u8) {
+        let result: u16 = self.V[index] as u16 + byte as u16;
+
+        self.V[index] = if result > 255 {
+            self.V[15] = 1;
+            result.to_be_bytes()[1]
+        } else {
+            self.V[15] = 0;
+            result as u8
+        }
     }
 
-    pub fn AND(&mut self, addr: u16) {
-        todo!();
+    pub fn OR(&mut self, index: usize, byte: u8) {
+        self.V[index] |= byte;
     }
 
-    pub fn XOR(&mut self, addr: u16) {
-        todo!();
+    pub fn AND(&mut self, index: usize, byte: u8) {
+        self.V[index] &= byte;
     }
 
-    pub fn SUB(&mut self, addr: u16) {
-        todo!();
+    pub fn XOR(&mut self, index: usize, byte: u8) {
+        self.V[index] ^= byte;
+    }
+
+    // V[index] should always be greater than byte
+    pub fn SUB(&mut self, index: usize, byte: u8) {
+        if self.V[index] > byte {
+            self.V[15] = 1;
+        } else {
+            self.V[15] = 1;
+        }
+        self.V[index] -= byte;
     }
 
     pub fn SHR(&mut self, addr: u16) {

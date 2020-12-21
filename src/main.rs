@@ -18,7 +18,7 @@ fn main() {
         0
     };
 
-    for _ in 0..=10 {
+    while cpu.ram[cpu.PC as usize] != 0x00 {
         cpu.bus.PPU.canvas.present();
         cpu.evaluate_opcode();
     }
